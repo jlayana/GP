@@ -12,7 +12,7 @@ GO
 
                                       
 /*                                               
-Creado por: Javier Layana Dávalos
+Creado por: Javier Layana Dávalos.
 
 Fecha: 2016.02.22
 Descripción: Procedimiento para pasar varios Pedidos a un Pedido.
