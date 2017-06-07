@@ -8,14 +8,16 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-
+/*
+Convert SOP ORDERS into ONE SOP Invoice
+*/
 
                                       
 /*                                               
-Creado por: Javier Layana Dávalos.
+Creado por: Javier Layana DÃ¡valos.
 
 Fecha: 2016.02.22
-Descripción: Procedimiento para pasar varios Pedidos a un Pedido.
+DescripciÃ³n: Procedimiento para pasar varios Pedidos a un Pedido.
 
 Modificaciones: 
                                                              
@@ -40,7 +42,7 @@ Begin
 	Set @vSOPTYPE = 2
 	Set @vLNITMSEQ = 0
 
-	/*Guadar los números de pedidos en una tabla temporal. */
+	/*Guadar los nÃºmeros de pedidos en una tabla temporal. */
 	If Exists (Select * From tempdb..sysobjects Where name = '##tSop035A')                                             
 		Drop Table ##tSop035A
 	Create Table ##tSop035A (
@@ -50,7 +52,7 @@ Begin
 	Select stringPart from dbo.zfnSplit2(@pSOPNUMBRS,';')
 
 	/*Datos de Pedidos y Guias. Se buscan los Pedidos son en trabajo ya que se supone no han sido facturados. Si los pedidos
-	no están en trabajo, significa que estos no pueden ser facturados. */
+	no estÃ¡n en trabajo, significa que estos no pueden ser facturados. */
 	If Exists (Select * From tempdb..sysobjects Where name = '##tSop035B')
 		Drop Table ##tSop035B
 	Create Table ##tSop035B (
@@ -105,17 +107,17 @@ Begin
 	from SOP10201 A
 	Inner join ##tSop035B B on B.SOPNUMBE = A.SOPNUMBE and B.LNITMSEQ = A.LNITMSEQ
 	
-	/* Validar que los pedidos no estén en histórico.*/
+	/* Validar que los pedidos no estÃ©n en histÃ³rico.*/
 	If Exists ( Select 1 from SOP30200 Where SOPNUMBE in (Select SOPNUMBE from ##tSop035A))
 	Begin
-		Print 'Validando que pedidos no esten en histórico: error'
+		Print 'Validando que pedidos no esten en histÃ³rico: error'
 		Set @iError = 104
-		Set @tError = 'Uno o varios pedidos se encuentran en estado histórico.'
+		Set @tError = 'Uno o varios pedidos se encuentran en estado histÃ³rico.'
 		Set @tUsrMsg = @tError 
 		Goto Fin
 	End
 	Else
-		Print 'Validando que pedidos no esten en histórico: ok'
+		Print 'Validando que pedidos no esten en histÃ³rico: ok'
 
 	/* Validar que existan datos. */
 	If Not Exists (Select 1 from ##tSop035B)
@@ -131,17 +133,17 @@ Begin
 	Select @vNroClientes = count(*) from (Select distinct CUSTNMBR from ##tSop035B) as A
 	If @vNroClientes > 1
 	Begin
-		Print 'Validando número de clientes: error'
+		Print 'Validando nÃºmero de clientes: error'
 		Set @iError = 101
 		Set @tError = 'Los pedidos a pasar a factura deben ser del mismo cliente.'
 		Set @tUsrMsg = @tError
 		Goto Fin
 	End
 	Else
-		Print 'Validando número de clientes: ok'
+		Print 'Validando nÃºmero de clientes: ok'
 
 
-	/* Validar que los pedidos estén totalmente entregadas. */
+	/* Validar que los pedidos estÃ©n totalmente entregadas. */
 	If exists (
 				Select 1 from ##tSop035B
 				Where
@@ -159,7 +161,7 @@ Begin
 	Else
 		Print 'Validando entregas: ok'
 	
-	/*Validar que la cantidad a facturar sea igual a la cantidad entregada en guías.*/
+	/*Validar que la cantidad a facturar sea igual a la cantidad entregada en guÃ­as.*/
 	If Exists (
 		Select 1 from ##tSop035B
 		Where
@@ -183,14 +185,14 @@ Begin
 		Group by SOPNUMBE,SOPTYPE,ITEMNMBR Having count(*)>1
 	)
 	Begin
-		Print 'Validando que en 1 Pedido no exista un artículo mas de una vez: error'
+		Print 'Validando que en 1 Pedido no exista un artÃ­culo mas de una vez: error'
 		Set @iError = 105
-		Set @tError = 'Existe al menos 1 Pedido con un artículo repetido dentro del Pedido.'
+		Set @tError = 'Existe al menos 1 Pedido con un artÃ­culo repetido dentro del Pedido.'
 		Set @tUsrMsg = @tError 
 		Goto Fin
 	End
 	Else
-		Print 'Validando que en 1 Pedido no exista un articulo dos veces o más: ok'
+		Print 'Validando que en 1 Pedido no exista un articulo dos veces o mÃ¡s: ok'
 	*/
 	
 	Begin Transaction TRX
@@ -225,18 +227,18 @@ Begin
 		End
 	End
 
-	/* Obtener número de factura */
+	/* Obtener nÃºmero de factura */
 	Exec @Return_Value = dbo.taGetSopNumber
 		 @I_tSOPTYPE = @vSOPTYPE,
 		 @I_cDOCID = @vDOCID, 
 		 @I_tInc_Dec = 1,       
 		 @O_vSopNumber = @vNextSOPNUMBE OUTPUT,        
 		 @O_iErrorState = @O_iErrorState OUTPUT
-	Print 'El siguiente número de Pedido es: ' + @vNextSOPNUMBE + '.'
+	Print 'El siguiente nÃºmero de Pedido es: ' + @vNextSOPNUMBE + '.'
 
 
-	/* Para cada línea */
-	Print 'Inicio para cada línea.'
+	/* Para cada lÃ­nea */
+	Print 'Inicio para cada lÃ­nea.'
 	Declare cLINEA cursor for
 		Select CUSTNMBR, ITEMNMBR, UOFM, LOCNCODE, Sum(QTYINVOICE)
 		From ##tSop035B
@@ -246,9 +248,9 @@ Begin
 	Fetch Next From cLINEA into @cCUSTNMBR, @cITEMNMBR, @cUOFM, @cLOCNCODE, @cCURRQTY
 	While @@fetch_status = 0
 	Begin
-		Print 'Dentro del While línea: ' + Rtrim(@cCUSTNMBR) + ' ' + Rtrim(@cITEMNMBR) + ' ' + Rtrim(@cUOFM) + ' ' + Rtrim(@cLOCNCODE) + ' ' + Convert(varchar, @cCURRQTY)
+		Print 'Dentro del While lÃ­nea: ' + Rtrim(@cCUSTNMBR) + ' ' + Rtrim(@cITEMNMBR) + ' ' + Rtrim(@cUOFM) + ' ' + Rtrim(@cLOCNCODE) + ' ' + Convert(varchar, @cCURRQTY)
 		Set @vLNITMSEQ = @vLNITMSEQ + 16384
-		/*Insertar lotes: deben ser iguales que los de las guías.*/
+		/*Insertar lotes: deben ser iguales que los de las guÃ­as.*/
 		Begin
 			Print 'Inicio para cada lote.'
 			Declare cLOTE cursor for
@@ -310,7 +312,7 @@ Begin
 			Deallocate cLOTE
 		End
 		
-		/*Insertar líneas de ventas*/
+		/*Insertar lÃ­neas de ventas*/
 		Begin Try
 			Print 'Ejecutando taSopLineIvcInsert.'
 			Exec @Return_Value = taSopLineIvcInsert
@@ -425,7 +427,7 @@ Begin
 		End Catch
 	End
 
-	/* Re-asignar Guías a nuevo Pedido */
+	/* Re-asignar GuÃ­as a nuevo Pedido */
 	Begin
 		Begin Try
 			
@@ -477,9 +479,9 @@ Begin
 						
 		End Try
 		Begin Catch
-			Print 'Error al re-asignar las guías originales hacia el nuevo Pedido.'
+			Print 'Error al re-asignar las guÃ­as originales hacia el nuevo Pedido.'
 			Set @iError = 207
-			Set @tError = 'Error al re-asignar las guías originales hacia el nuevo Pedido: tablas Tb_guias_remision y tb_relacion_guia_lotes.'
+			Set @tError = 'Error al re-asignar las guÃ­as originales hacia el nuevo Pedido: tablas Tb_guias_remision y tb_relacion_guia_lotes.'
 			Set @tUsrMsg = @tError
 		End Catch
 	End
